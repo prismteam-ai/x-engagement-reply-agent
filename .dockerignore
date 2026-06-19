@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+data
+cdk.out
+infra/node_modules
+infra/cdk.out
+.git
+.env
+.env.local
+*.log
+docs/*.mp4

@@ -1,0 +1,22 @@
+{
+  "description": "Demo fixture — synthetic posts for @cdixon. Includes a low-relevance post to demo threshold gating.",
+  "handle": "cdixon",
+  "posts": [
+    {
+      "sourceUri": "https://x.com/cdixon/status/1990000000000000010",
+      "statusId": "1990000000000000010",
+      "handle": "cdixon",
+      "header": "Tokenizing real-world assets",
+      "text": "The next wave of crypto is real-world assets. Tokenized property with verifiable on-chain title could unlock liquidity that's trapped in paper deeds today.",
+      "createdAt": "2026-06-18T09:00:00.000Z"
+    },
+    {
+      "sourceUri": "https://x.com/cdixon/status/1990000000000000011",
+      "statusId": "1990000000000000011",
+      "handle": "cdixon",
+      "header": "Off-topic post for threshold demo",
+      "text": "Had a great burrito today. Sometimes the simple things matter most.",
+      "createdAt": "2026-06-18T18:00:00.000Z"
+    }
+  ]
+}
