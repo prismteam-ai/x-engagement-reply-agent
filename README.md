@@ -4,7 +4,7 @@ Targeted Author X Polling, Engagement Detection, and Recommended Reply Workflow
 
 ## Context
 
-[elephant-xyz/investors-mcp](https://github.com/elephant-xyz/investors-mcp) currently implements a production workflow that polls targeted X authors for new posts, ingests posts into a knowledge corpus, compares each post against Soofi Safavi article content using semantic similarity, drafts recommended X replies, and creates Asana approval tasks for a human operator to review and post manually.
+Elephant's internal **investors-mcp** application currently implements a production workflow that polls targeted X authors for new posts, ingests posts into a knowledge corpus, compares each post against Soofi Safavi article content using semantic similarity, drafts recommended X replies, and creates Asana approval tasks for a human operator to review and post manually.
 
 That workflow is embedded in a monolithic application. Operational behavior — watched authors, similarity thresholds, draft prompts, response constraints, and model selection — is managed through an admin dashboard and persistent storage rather than version-controlled configuration. Prompt evolution (adding a fifth or sixth reply variant, changing tone, or adjusting constraints) requires dashboard edits or database changes instead of pull-request review.
 
@@ -20,68 +20,6 @@ The agent must preserve the current operational outcomes of investors-mcp:
 
 - **X integration (polling):** scheduled polling of watched authors, new-post detection, referenced-post enrichment, and deduplication of already-processed posts
 - **Asana integration (tasking):** parent task creation for each qualifying post, article-recommendation approval subtasks per reply prompt, similarity metadata, threshold-based assignee rules, and X compose intent links in task notes
-
-## Candidate dependencies
-
-### Provided by Elephant
-
-| Dependency | Access | Purpose |
-|------------|--------|---------|
-| [investors-mcp](https://github.com/elephant-xyz/investors-mcp) (`public-reference` branch) | Public git | Reference code, schema, pipeline map |
-| Production MCP (read-only) | URL + tools below | Semantic search over Soofi Safavi article corpus |
-| This user story | Public git | Requirements, acceptance criteria, demo |
-
-**MCP endpoint:** `https://investors-mcp.vercel.app/mcp`  
-**Transport:** Streamable HTTP MCP (see `scripts/test-streamable-http-client.mjs` in investors-mcp)
-
-**Allowed read tools:**
-
-- `queryInvestorContent` — **required** for article matching and reply grounding
-- `listInvestorContent` — optional, for filtered listing by author, date, or segment type
-
-**Not provided (candidates supply their own):**
-
-- X API credentials and test watchlist handles
-- Asana project, personal access token, and sandbox assignees
-- LLM provider credentials and observability tooling
-- Write access to the knowledge corpus (`addInvestorParagraph` / `MCP_WRITE_TOKEN`)
-
-### Required RAG integration
-
-The agent **must** match posts against Soofi articles by calling the hosted MCP — not by connecting directly to the vector store or blob storage.
-
-For each candidate post, call `queryInvestorContent` with the post text as the query and scope to Soofi articles:
-
-```json
-{
-  "query": "<full text of the X post>",
-  "author": "Soofi Safavi",
-  "contentType": "article",
-  "segmentType": "article_full",
-  "topK": 40
-}
-```
-
-Use returned match scores for threshold gating (parent task vs recommendation subtasks) and use matched article content when generating reply drafts.
-
-**Do not** ingest monitored X posts into the production investors-mcp corpus unless explicitly authorized. Dry-run and local testing must not call write tools.
-
-### Operator setup (Elephant)
-
-Before candidates start, confirm:
-
-1. Production MCP is live at `https://investors-mcp.vercel.app/mcp`
-2. A smoke test of `queryInvestorContent` with the Soofi article filters above succeeds
-3. The sanitized `public-reference` branch is published on investors-mcp
-4. Candidates receive the MCP URL and example query — not `MCP_WRITE_TOKEN` or infrastructure credentials
-
-Read access to MCP query tools is currently open (no read token required). Optional hardening such as a dedicated read token or rate limits may be added later; candidates will be notified if authentication becomes required.
-
-### Out of scope for candidates
-
-- investors-mcp admin / reporting UI (`/reporting`, `/authors`, `/polling`, `/replies`)
-- Postgres-backed watchlist or automation settings in investors-mcp
-- Rebuilding or replacing the MCP server or RAG platform
 
 ## Acceptance Criteria
 
@@ -188,8 +126,73 @@ Read access to MCP query tools is currently open (no read token required). Optio
 
 This milestone is complete when the X Engagement Reply Agent loads all operational configuration and prompts from version-controlled files, polls X for targeted authors on a schedule, generates prompt-driven recommended replies from Soofi article matches, creates Asana approval workflows equivalent to investors-mcp, and demonstrates the required scenarios above with observable LLM runs and structured run summaries.
 
+## Candidate dependencies
+
+### Provided by Elephant
+
+| Dependency | Access | Purpose |
+|------------|--------|---------|
+| [Reference architecture](./docs/reference-architecture.md) | This repo | Pipeline map and key function names |
+| [Example config and prompts](./examples/reference/) | This repo | Target config/prompt shapes and fixtures |
+| Production MCP (read-only) | URL + tools below | Semantic search over Soofi Safavi article corpus |
+| This user story | This repo | Requirements, acceptance criteria, demo |
+
+The full investors-mcp source tree is Elephant-internal and is **not** linked here. Candidates should use the architecture doc, examples in this repo, and the hosted MCP endpoint below.
+
+**MCP endpoint:** `https://investors-mcp.vercel.app/mcp`  
+**Transport:** Streamable HTTP MCP (JSON-RPC over HTTP; use any MCP client that supports streamable HTTP)
+
+**Allowed read tools:**
+
+- `queryInvestorContent` — **required** for article matching and reply grounding
+- `listInvestorContent` — optional, for filtered listing by author, date, or segment type
+
+**Not provided (candidates supply their own):**
+
+- X API credentials and test watchlist handles
+- Asana project, personal access token, and sandbox assignees
+- LLM provider credentials and observability tooling
+- Write access to the knowledge corpus (`addInvestorParagraph` / `MCP_WRITE_TOKEN`)
+
+### Required RAG integration
+
+The agent **must** match posts against Soofi articles by calling the hosted MCP — not by connecting directly to the vector store or blob storage.
+
+For each candidate post, call `queryInvestorContent` with the post text as the query and scope to Soofi articles:
+
+```json
+{
+  "query": "<full text of the X post>",
+  "author": "Soofi Safavi",
+  "contentType": "article",
+  "segmentType": "article_full",
+  "topK": 40
+}
+```
+
+Use returned match scores for threshold gating (parent task vs recommendation subtasks) and use matched article content when generating reply drafts.
+
+**Do not** ingest monitored X posts into the production investors-mcp corpus unless explicitly authorized. Dry-run and local testing must not call write tools.
+
+### Operator setup (Elephant)
+
+Before candidates start, confirm:
+
+1. Production MCP is live at `https://investors-mcp.vercel.app/mcp`
+2. A smoke test of `queryInvestorContent` with the Soofi article filters above succeeds
+3. This repo's [reference architecture](./docs/reference-architecture.md) and [examples](./examples/reference/) are up to date
+4. Candidates receive the MCP URL and example query — not `MCP_WRITE_TOKEN` or infrastructure credentials
+
+Read access to MCP query tools is currently open (no read token required). Optional hardening such as a dedicated read token or rate limits may be added later; candidates will be notified if authentication becomes required.
+
+### Out of scope for candidates
+
+- investors-mcp admin / reporting UI (`/reporting`, `/authors`, `/polling`, `/replies`)
+- Postgres-backed watchlist or automation settings in investors-mcp
+- Rebuilding or replacing the MCP server or RAG platform
+
 ## Reference
 
-- [elephant-xyz/investors-mcp](https://github.com/elephant-xyz/investors-mcp) — reference implementation
-- [investors-mcp `public-reference` branch](https://github.com/elephant-xyz/investors-mcp/tree/public-reference) — sanitized reference code (when published)
+- [Reference architecture](./docs/reference-architecture.md) — pipeline map for the investors-mcp workflow
+- [Example config and prompts](./examples/reference/) — target shapes for watchlist, settings, prompts, and fixtures
 - [Soofi XYZ Team Kit](https://github.com/soofi-xyz/soofi-xyz-team-kit)
