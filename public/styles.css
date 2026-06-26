@@ -62,8 +62,10 @@ th { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-s
 .controls label { color: var(--muted); }
 .controls label.check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .controls label.check input { accent-color: var(--accent); width: 16px; height: 16px; }
-select, button { font: inherit; border-radius: 8px; border: 1px solid var(--border); padding: 10px 14px; }
+select, button, input[type="password"] { font: inherit; border-radius: 8px; border: 1px solid var(--border); padding: 10px 14px; }
 select { background: var(--card); color: var(--text); min-width: 220px; }
+input[type="password"] { background: var(--card); color: var(--text); min-width: 240px; flex: 1 1 240px; }
+input[type="password"]::placeholder { color: var(--muted); }
 button { background: var(--accent); color: #fff; border-color: var(--accent-strong); cursor: pointer; font-weight: 600; }
 button:hover:not(:disabled) { background: var(--accent-strong); }
 button:disabled { opacity: 0.6; cursor: progress; }
@@ -109,5 +111,5 @@ button:disabled { opacity: 0.6; cursor: progress; }
 }
 @media (max-width: 480px) {
   .summary { grid-template-columns: repeat(2, 1fr); }
-  .controls select, .controls button { width: 100%; flex: none; }
+  .controls select, .controls button, .controls input[type="password"] { width: 100%; flex: none; }
 }

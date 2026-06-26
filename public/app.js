@@ -100,18 +100,21 @@ async function runPipeline() {
   const author = $("#author-select").value;
   const driver = $("#driver-select").value;
   const dryRun = $("#dryrun-toggle").checked;
+  const token = $("#run-token").value.trim();
 
   button.disabled = true;
   status.textContent = isPrivileged() ? "Running LIVE pipeline…" : "Running dry-run pipeline…";
   runError.hidden = true;
 
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["X-Run-Token"] = token;
   const body = { driver, dryRun };
   if (author) body.author = author;
 
   try {
     const res = await fetch("/api/run", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body),
     });
     const data = await res.json();
