@@ -1,0 +1,47 @@
+# Watched authors — replaces investors-mcp managed_authors table.
+# Add/remove/toggle authors by editing this file and redeploying.
+
+authors:
+  - author: "Soofi Safavi"
+    handle: "ssafavi"
+    company: "elephant-xyz"
+    aliases:
+      handles: []
+      authors: []
+    active: true
+    # Don't draft replies to the corpus author's own posts.
+    excludeFromTasking: true
+
+  - author: "Balaji Srinivasan"
+    handle: "balajis"
+    company: "independent"
+    aliases:
+      handles: []
+      authors: []
+    active: true
+
+  - author: "Chris Dixon"
+    handle: "cdixon"
+    company: "a16z"
+    aliases:
+      handles: []
+      authors: []
+    active: true
+
+  - author: "Packy McCormick"
+    handle: "packyM"
+    company: "not-boring"
+    aliases:
+      handles: []
+      authors: []
+    active: true
+
+  # Demo account — post a tweet from here during the live demo to show
+  # scheduled polling detecting a brand-new post end to end.
+  - author: "Aleksandar Brkljac"
+    handle: "AleksandarBrkl1"
+    company: "demo"
+    aliases:
+      handles: []
+      authors: []
+    active: true

@@ -1,0 +1,111 @@
+# Local dev environment for the X Engagement Reply Agent.
+#
+#   docker compose up -d                 # DynamoDB Local + admin UI + table init
+#   docker compose --profile agent up    # also run the agent (watch loop) in a container
+#
+# With just the data services up, run the agent on the host against the local DB:
+#   STATE_STORE=dynamo AGENT_STATE_TABLE=AgentState \
+#   DYNAMODB_ENDPOINT=http://localhost:8000 pnpm run run
+#
+# Browse state at http://localhost:8001 (dynamodb-admin).
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:2.5.2
+    container_name: xera-dynamodb
+    # Run as root so the mounted volume (root-owned by Docker) is writable for -dbPath.
+    user: root
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
+    working_dir: /home/dynamodblocal
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+
+  # One-shot: wait for DynamoDB Local, then create the AgentState table + TTL.
+  dynamodb-init:
+    image: amazon/aws-cli:2.22.7
+    container_name: xera-dynamodb-init
+    depends_on:
+      - dynamodb
+    environment:
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_REGION: us-east-2
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until aws dynamodb list-tables --endpoint-url http://dynamodb:8000 >/dev/null 2>&1; do
+          echo "waiting for dynamodb..."; sleep 1;
+        done
+        aws dynamodb create-table \
+          --endpoint-url http://dynamodb:8000 \
+          --table-name AgentState \
+          --attribute-definitions AttributeName=pk,AttributeType=S AttributeName=sk,AttributeType=S \
+          --key-schema AttributeName=pk,KeyType=HASH AttributeName=sk,KeyType=RANGE \
+          --billing-mode PAY_PER_REQUEST >/dev/null 2>&1 && echo "AgentState created" || echo "AgentState already exists"
+        aws dynamodb update-time-to-live \
+          --endpoint-url http://dynamodb:8000 \
+          --table-name AgentState \
+          --time-to-live-specification "Enabled=true,AttributeName=ttl" >/dev/null 2>&1 || true
+        echo "AgentState ready"
+    restart: "no"
+
+  # Web UI to browse/edit the local table: http://localhost:8001
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: xera-dynamodb-admin
+    depends_on:
+      - dynamodb
+    ports:
+      - "8001:8001"
+    environment:
+      DYNAMO_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: us-east-2
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+
+  # Optional: run the agent itself in a container (poll loop against the local DB).
+  # Enable with:  docker compose --profile agent up
+  agent:
+    build: .
+    container_name: xera-agent
+    profiles: ["agent"]
+    depends_on:
+      - dynamodb-init
+    env_file:
+      - .env
+    environment:
+      STATE_STORE: dynamo
+      AGENT_STATE_TABLE: AgentState
+      DYNAMODB_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: us-east-2
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+    command: ["pnpm", "run", "run:watch"]
+
+  # One-command demo: validates the code-managed config + prompts, then runs the
+  # full pipeline in dry-run (fixture X driver + live investors-mcp, NO Asana/state
+  # writes). Run JUST this service (no DynamoDB stack needed — it uses file state):
+  #
+  #   docker compose --profile demo run --rm --build demo
+  #
+  #   - validate-config needs NO secrets.
+  #   - run:dry drafts replies with an LLM, so it needs OPENAI_API_KEY (or Bedrock
+  #     creds) — copy .env.example to .env and fill it in. Without a key, validate
+  #     -config still proves config-as-code; see docs/sample-dry-run-output.md for a
+  #     committed full dry-run artifact captured with credentials.
+  demo:
+    build: .
+    profiles: ["demo"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      X_DRIVER: fixture
+      STATE_STORE: file
+      LOG_LEVEL: info
+    command: ["sh", "-lc", "pnpm run validate-config && pnpm run run:dry"]
+
+volumes:
+  dynamodb-data:

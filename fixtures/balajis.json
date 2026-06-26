@@ -1,0 +1,29 @@
+{
+  "description": "Demo fixture — synthetic posts for @balajis keyed to Soofi's property/web3 corpus.",
+  "handle": "balajis",
+  "posts": [
+    {
+      "sourceUri": "https://x.com/balajis/status/1990000000000000001",
+      "statusId": "1990000000000000001",
+      "handle": "balajis",
+      "header": "On-chain property records will reshape real estate",
+      "text": "County deed systems are siloed and opaque. Putting verifiable ownership and liens on-chain would make property data composable. The question is privacy: how do you prove ownership without doxxing the owner?",
+      "createdAt": "2026-06-18T12:00:00.000Z"
+    },
+    {
+      "sourceUri": "https://x.com/balajis/status/1990000000000000002",
+      "statusId": "1990000000000000002",
+      "handle": "balajis",
+      "header": "Quoting a thread on stealth addresses",
+      "text": "This is the right framing. Stealth addresses + ZK proofs are how you separate digital identity from physical identity for tokenized assets.",
+      "createdAt": "2026-06-18T15:30:00.000Z",
+      "referencedOriginal": {
+        "sourceUri": "https://x.com/someuser/status/1989000000000000000",
+        "statusId": "1989000000000000000",
+        "relation": "quote",
+        "authorHandle": "someuser",
+        "text": "How do privacy-preserving property ledgers actually keep wallet-to-person links private while staying verifiable?"
+      }
+    }
+  ]
+}

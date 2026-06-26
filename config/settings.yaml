@@ -1,0 +1,36 @@
+# Automation settings — replaces investors-mcp automation_settings table.
+# Edit + redeploy to change behavior; no admin UI or DB migration required.
+
+pollIntervalMinutes: 1
+defaultBatchSize: 5
+defaultMaxPostsPerAuthor: 20
+
+# topK for investors-mcp queryInvestorContent (server hard-caps at 20).
+# Use the full headroom for better recall before threshold gating.
+defaultTopK: 20
+
+# Best-match raw cosine similarity required to create a parent Asana task.
+# 0 = always create the parent if other checks pass.
+asanaTaskSimilarityThreshold: 0
+
+# Per-article raw cosine similarity required to create a recommendation subtask.
+articleSimilarityThreshold: 0.7
+
+# Max matched articles (best first) that generate reply subtasks per post.
+# 1 = best article only → one subtask per reply prompt (matches the reference shape).
+maxArticlesPerPost: 1
+
+# Provider-agnostic model id (Vercel AI SDK). Examples:
+#   openai/gpt-4.1-mini
+#   bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0
+modelId: openai/gpt-4.1-mini
+
+asana:
+  workspace: "1215864940321516"
+  project: "1215863516577788"
+  section: "1215863516577789"
+  defaultAssignee: "1215864940321504"
+  thresholdAssignee: "1215864940321504"
+  thresholdAssigneeRawScore: 0.8
+  parentSimilarityFieldId: ""
+  subtaskSimilarityFieldId: ""

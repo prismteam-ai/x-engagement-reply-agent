@@ -1,0 +1,57 @@
+{
+  "modelId": "openai/gpt-4.1-mini",
+  "thresholds": {
+    "asanaTaskSimilarityThreshold": 0,
+    "articleSimilarityThreshold": 0.7
+  },
+  "pollIntervalMinutes": 1,
+  "defaultBatchSize": 5,
+  "defaultTopK": 20,
+  "maxArticlesPerPost": 1,
+  "authors": [
+    {
+      "name": "Soofi Safavi",
+      "handle": "ssafavi",
+      "company": "elephant-xyz",
+      "active": true,
+      "excludeFromTasking": true
+    },
+    {
+      "name": "Balaji Srinivasan",
+      "handle": "balajis",
+      "company": "independent",
+      "active": true,
+      "excludeFromTasking": false
+    },
+    {
+      "name": "Chris Dixon",
+      "handle": "cdixon",
+      "company": "a16z",
+      "active": true,
+      "excludeFromTasking": false
+    },
+    {
+      "name": "Packy McCormick",
+      "handle": "packyM",
+      "company": "not-boring",
+      "active": false,
+      "excludeFromTasking": false
+    }
+  ],
+  "replyPrompts": [
+    {
+      "index": 1,
+      "label": "Prompt 1",
+      "file": "1-grounded-reply.md",
+      "title": "Grounded reply",
+      "text": "Draft a concise, grounded reply that connects the post to the matched Soofi article without overstating the link."
+    },
+    {
+      "index": 2,
+      "label": "Prompt 2",
+      "file": "2-question-reply.md",
+      "title": "Curious question",
+      "text": "Draft a reply that asks one genuine, specific question informed by the matched Soofi article."
+    }
+  ]
+}

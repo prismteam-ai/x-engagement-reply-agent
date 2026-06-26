@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>X Engagement Reply Agent</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <h1 data-testid="app-title">X Engagement Reply Agent</h1>
+        <p class="subtitle">
+          Polls watched X authors, matches posts to Soofi articles, and drafts grounded reply
+          recommendations for human approval. Config and prompts are code-managed — no admin UI, no DB.
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <!-- CONFIG PANEL -->
+      <section class="panel" aria-labelledby="config-heading">
+        <h2 id="config-heading">Code-managed configuration</h2>
+        <div id="config-error" class="error" data-testid="config-error" hidden></div>
+
+        <div class="config-grid">
+          <div class="card" data-testid="config-settings">
+            <h3>Model &amp; thresholds</h3>
+            <dl class="kv">
+              <dt>Model</dt><dd data-testid="config-model">—</dd>
+              <dt>Parent task threshold</dt><dd data-testid="config-parent-threshold">—</dd>
+              <dt>Article threshold</dt><dd data-testid="config-article-threshold">—</dd>
+              <dt>Poll interval (min)</dt><dd data-testid="config-poll-interval">—</dd>
+              <dt>Batch size</dt><dd data-testid="config-batch-size">—</dd>
+              <dt>Top K</dt><dd data-testid="config-topk">—</dd>
+              <dt>Max articles / post</dt><dd data-testid="config-max-articles">—</dd>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h3>Reply prompt files</h3>
+            <ul class="prompt-list" data-testid="prompt-file-list"></ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Watched authors</h3>
+          <div class="table-scroll">
+            <table data-testid="config-author-table">
+              <thead>
+                <tr><th>Author</th><th>Handle</th><th>Company</th><th>Active</th><th>Excluded</th></tr>
+              </thead>
+              <tbody data-testid="config-author-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONTROLS -->
+      <section class="panel" aria-labelledby="controls-heading">
+        <h2 id="controls-heading">Run pipeline</h2>
+        <div class="controls">
+          <label for="author-select">Author</label>
+          <select id="author-select" data-testid="author-select">
+            <option value="">All authors</option>
+          </select>
+
+          <label for="driver-select">X driver</label>
+          <select id="driver-select" data-testid="driver-select">
+            <option value="fixture">Fixture</option>
+            <option value="live">Live</option>
+          </select>
+
+          <label class="check"><input id="dryrun-toggle" type="checkbox" data-testid="dryrun-toggle" checked /> Dry run (no Asana writes)</label>
+
+          <input id="run-token" type="password" data-testid="run-token" autocomplete="off"
+            placeholder="X-Run-Token (required for live)" />
+
+          <button id="run-button" data-testid="run-button" type="button">Run pipeline (dry-run)</button>
+          <span id="run-status" class="run-status" data-testid="run-status" role="status"></span>
+        </div>
+
+        <p id="live-warning" class="warning" data-testid="live-warning" hidden>
+          Live mode polls real X and creates real Asana tasks.
+        </p>
+
+        <p class="hint">
+          Default is dry-run against fixtures. Article scores come from the live investors-mcp. Reply drafting needs
+          <code>OPENAI_API_KEY</code> (or Bedrock); without it, affected posts report outcome <code>failed</code>.
+          Live mode (Live driver or unchecked dry-run) requires the shared <code>X-Run-Token</code> and the X / Asana /
+          LangSmith secrets to be configured on the server.
+        </p>
+      </section>
+
+      <!-- RESULTS -->
+      <section class="panel" aria-labelledby="results-heading">
+        <h2 id="results-heading">Run results</h2>
+        <div id="run-error" class="error" data-testid="run-error" hidden></div>
+
+        <div id="summary" class="summary" data-testid="run-summary" hidden>
+          <div class="tile"><span class="tile-label">Authors polled</span><span class="tile-value" data-testid="summary-authorsPolled">0</span></div>
+          <div class="tile"><span class="tile-label">Posts fetched</span><span class="tile-value" data-testid="summary-postsFetched">0</span></div>
+          <div class="tile"><span class="tile-label">New processed</span><span class="tile-value" data-testid="summary-newPostsProcessed">0</span></div>
+          <div class="tile"><span class="tile-label">Parent tasks</span><span class="tile-value" data-testid="summary-parentTasks">0</span></div>
+          <div class="tile"><span class="tile-label">Subtasks</span><span class="tile-value" data-testid="summary-subtasks">0</span></div>
+          <div class="tile"><span class="tile-label">Skipped</span><span class="tile-value" data-testid="summary-skipped">0</span></div>
+          <div class="tile"><span class="tile-label">Failed</span><span class="tile-value" data-testid="summary-failed">0</span></div>
+        </div>
+
+        <div id="posts" class="posts" data-testid="post-list"></div>
+        <p id="empty-state" class="hint" data-testid="empty-state">Run the pipeline to see matched posts and reply drafts.</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">Dry-run / fixture runtime &middot; no posts are published to X.</div>
+    </footer>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,65 @@
+{
+  "name": "x-engagement-reply-agent",
+  "version": "0.1.0",
+  "description": "Scheduled X targeted-author polling agent that drafts Soofi-grounded reply recommendations and creates Asana approval tasks. Code-managed config + prompts.",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "x-engagement-reply-agent": "./dist/cli.js"
+  },
+  "scripts": {
+    "run": "tsx src/cli.ts run",
+    "run:dry": "tsx src/cli.ts run --dry-run",
+    "run:watch": "tsx src/cli.ts run --watch",
+    "serve": "tsx src/web/server.ts",
+    "start": "node dist/src/web/server.js",
+    "validate-config": "tsx src/cli.ts validate-config",
+    "asana:ids": "tsx src/tools/asana-ids.ts",
+    "langsmith:check": "tsx src/tools/langsmith-check.ts",
+    "x:check": "tsx src/tools/x-check.ts",
+    "dynamo:init": "tsx src/tools/dynamo-init.ts",
+    "dev:up": "docker compose up -d",
+    "dev:down": "docker compose down",
+    "dev:logs": "docker compose logs -f",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:design": "playwright test",
+    "test:design:install": "playwright install chromium",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\""
+  },
+  "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^1.1.6",
+    "@ai-sdk/openai": "^1.1.9",
+    "@aws-lambda-powertools/logger": "^2.12.0",
+    "@aws-lambda-powertools/metrics": "^2.12.0",
+    "@aws-lambda-powertools/tracer": "^2.12.0",
+    "@aws-sdk/client-dynamodb": "^3.726.0",
+    "@aws-sdk/client-secrets-manager": "^3.726.0",
+    "@aws-sdk/lib-dynamodb": "^3.726.0",
+    "ai": "^4.1.16",
+    "dotenv": "^16.4.7",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^22.10.7",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "eslint": "^8.57.1",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
