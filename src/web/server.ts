@@ -2,7 +2,6 @@ import "dotenv/config";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize, sep } from "node:path";
-import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { createLogger } from "../observability/logger.js";
 import { loadConfigView, runPipeline } from "./runner.js";
@@ -26,20 +25,6 @@ const runBodySchema = z
     dryRun: z.boolean().default(true),
   })
   .default({});
-
-function headerValue(req: IncomingMessage, name: string): string | undefined {
-  const raw = req.headers[name];
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return value && value.length > 0 ? value : undefined;
-}
-
-/** Constant-time compare that never throws on length mismatch. */
-function tokensMatch(provided: string, expected: string): boolean {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -102,9 +87,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
 
   if (method === "GET" && path === "/api/config") {
     try {
-      // liveAvailable reflects whether the gate is configured (RUN_TOKEN set).
-      // The token value itself is never exposed.
-      sendJson(res, 200, { ...loadConfigView(), liveAvailable: Boolean(process.env.RUN_TOKEN) });
+      sendJson(res, 200, loadConfigView());
     } catch (err) {
       log.error("config load failed", { error: err instanceof Error ? err.message : String(err) });
       sendJson(res, 500, { error: err instanceof Error ? err.message : "failed to load config" });
@@ -122,22 +105,8 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       return;
     }
 
-    // A run is PRIVILEGED when it polls real X or writes real Asana tasks. The
-    // default fixture + dry-run run requires no token (unchanged behaviour).
-    const privileged = parsed.driver === "live" || parsed.dryRun === false;
-    if (privileged) {
-      const expected = process.env.RUN_TOKEN ?? "";
-      if (!expected) {
-        sendJson(res, 403, { error: "live mode not configured (RUN_TOKEN unset)" });
-        return;
-      }
-      const provided = headerValue(req, "x-run-token");
-      if (!provided || !tokensMatch(provided, expected)) {
-        sendJson(res, 401, { error: "invalid or missing run token" });
-        return;
-      }
-    }
-
+    // Live mode is ungated: driver=live and/or dryRun=false proceed without any
+    // token. The default fixture + dry-run run is unchanged.
     try {
       log.info("run requested", {
         author: parsed.author ?? "all",

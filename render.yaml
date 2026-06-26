@@ -10,12 +10,14 @@
 # Two operating modes:
 #   * DEFAULT (dry-run + fixture): the only secret needed is OPENAI_API_KEY for
 #     reply drafting. Matching + config render without it (affected posts just
-#     show outcome "failed"). No X / Asana / LangSmith creds are required and no
-#     token gate applies — these runs poll committed fixtures and write nothing.
+#     show outcome "failed"). No X / Asana / LangSmith creds are required — these
+#     runs poll committed fixtures and write nothing.
 #   * LIVE (opt-in per request from the UI): polls real X and creates real Asana
-#     tasks with LangSmith tracing. Requires RUN_TOKEN (the shared secret the UI
-#     sends as X-Run-Token) PLUS X_BEARER_TOKEN, ASANA_PERSONAL_ACCESS_TOKEN, and
-#     the LANGSMITH_* vars. If RUN_TOKEN is unset, the server refuses live runs.
+#     tasks with LangSmith tracing. Needs X_BEARER_TOKEN, ASANA_PERSONAL_ACCESS_TOKEN,
+#     and the LANGSMITH_* vars set. Live mode is UNGATED — there is NO token check,
+#     so anyone with the URL can trigger live X polling + real Asana writes. Treat
+#     the deployed URL as sensitive: do NOT share it publicly; it is intended for a
+#     time-boxed review and should be torn down or have its creds removed afterward.
 # Asana GIDs (workspace/project/section/assignee) and the watchlist handles are
 # already committed in config/, so only the secrets below need setting.
 # Set every `sync: false` var in the service's Environment tab (kept out of git).
@@ -43,11 +45,7 @@ services:
       # Required for LLM reply drafting (used in both modes). Set in dashboard.
       - key: OPENAI_API_KEY
         sync: false
-      # --- Live mode (opt-in per request via the UI) ---
-      # Shared secret gating privileged runs. The UI sends it as X-Run-Token.
-      # Leave unset to disable live mode entirely (server returns 403).
-      - key: RUN_TOKEN
-        sync: false
+      # --- Live mode (opt-in per request via the UI; UNGATED — no token) ---
       # Real X polling (live X driver). Required when driver=live.
       - key: X_BEARER_TOKEN
         sync: false

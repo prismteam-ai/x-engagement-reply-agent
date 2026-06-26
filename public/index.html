@@ -73,9 +73,6 @@
 
           <label class="check"><input id="dryrun-toggle" type="checkbox" data-testid="dryrun-toggle" checked /> Dry run (no Asana writes)</label>
 
-          <input id="run-token" type="password" data-testid="run-token" autocomplete="off"
-            placeholder="X-Run-Token (required for live)" />
-
           <button id="run-button" data-testid="run-button" type="button">Run pipeline (dry-run)</button>
           <span id="run-status" class="run-status" data-testid="run-status" role="status"></span>
         </div>
@@ -87,8 +84,8 @@
         <p class="hint">
           Default is dry-run against fixtures. Article scores come from the live investors-mcp. Reply drafting needs
           <code>OPENAI_API_KEY</code> (or Bedrock); without it, affected posts report outcome <code>failed</code>.
-          Live mode (Live driver or unchecked dry-run) requires the shared <code>X-Run-Token</code> and the X / Asana /
-          LangSmith secrets to be configured on the server.
+          Live mode (Live driver or unchecked dry-run) polls real X and creates real Asana tasks; it needs the X / Asana /
+          LangSmith secrets configured on the server.
         </p>
       </section>
 
