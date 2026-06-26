@@ -4,8 +4,9 @@
   "description": "Scheduled X targeted-author polling agent that drafts Soofi-grounded reply recommendations and creates Asana approval tasks. Code-managed config + prompts.",
   "type": "module",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "bin": {
     "x-engagement-reply-agent": "./dist/cli.js"

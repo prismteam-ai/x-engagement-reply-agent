@@ -84,5 +84,28 @@ services:
       AWS_SECRET_ACCESS_KEY: local
     command: ["pnpm", "run", "run:watch"]
 
+  # One-command demo: validates the code-managed config + prompts, then runs the
+  # full pipeline in dry-run (fixture X driver + live investors-mcp, NO Asana/state
+  # writes). Run JUST this service (no DynamoDB stack needed — it uses file state):
+  #
+  #   docker compose --profile demo run --rm --build demo
+  #
+  #   - validate-config needs NO secrets.
+  #   - run:dry drafts replies with an LLM, so it needs OPENAI_API_KEY (or Bedrock
+  #     creds) — copy .env.example to .env and fill it in. Without a key, validate
+  #     -config still proves config-as-code; see docs/sample-dry-run-output.md for a
+  #     committed full dry-run artifact captured with credentials.
+  demo:
+    build: .
+    profiles: ["demo"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      X_DRIVER: fixture
+      STATE_STORE: file
+      LOG_LEVEL: info
+    command: ["sh", "-lc", "pnpm run validate-config && pnpm run run:dry"]
+
 volumes:
   dynamodb-data:

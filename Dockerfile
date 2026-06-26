@@ -1,6 +1,6 @@
 # Dev image for running the agent in docker-compose (the `agent` profile).
 # Production runs as a Lambda (see infra/) — this image is for local dev only.
-FROM node:20-slim
+FROM node:22-slim
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH

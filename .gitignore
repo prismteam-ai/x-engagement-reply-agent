@@ -7,6 +7,13 @@ data/
 coverage/
 .DS_Store
 
+# Demo videos live in the PR description, not the repo
+docs/*.mp4
+
 # CDK
 infra/cdk.out/
 cdk.out/
+
+# Local agent/editor tooling
+.claude/
+.cursor/

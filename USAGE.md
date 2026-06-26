@@ -14,6 +14,22 @@ pnpm run validate-config      # validate config + prompts
 pnpm run run:dry              # full pipeline, fixtures + live MCP, no side effects
 ```
 
+### Working runtime — one command (Docker)
+
+Run the pipeline end-to-end in a container, no local toolchain needed:
+
+```bash
+docker compose --profile demo run --rm --build demo
+```
+
+This validates the code-managed config + prompts, then runs the **full pipeline in
+dry-run** — fixture X posts + the **live** investors-mcp similarity scores + LLM reply
+drafts — with **no Asana or state writes**. `validate-config` needs no secrets; the
+drafting step needs an LLM key, so `cp .env.example .env` and add `OPENAI_API_KEY`
+(or Bedrock creds) first. Without a key, config validation still runs and
+[`docs/sample-dry-run-output.md`](./docs/sample-dry-run-output.md) is a committed
+full-output artifact captured with credentials.
+
 ### Full local stack (Docker Compose)
 
 Run the real DynamoDB-backed state path locally — DynamoDB Local + a web admin UI:
