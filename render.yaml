@@ -1,0 +1,35 @@
+# Render Blueprint for the X Engagement Reply Agent web runtime.
+#
+# Deploys the dashboard added in src/web/ as a hosted web service so the agent
+# has a real, browser-reviewable runtime (config view + on-demand dry-run runs
+# with live investors-mcp similarity scores and LLM-drafted replies).
+#
+# Deploy: push this repo to GitHub, then in the Render dashboard
+#   New + → Blueprint → pick this repo. Render reads this file.
+# After the first deploy, set the OPENAI_API_KEY secret (below) in the
+# service's Environment tab so reply drafting works; matching + config render
+# without it (affected posts just show outcome "failed").
+services:
+  - type: web
+    name: x-engagement-reply-agent
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Override the image CMD (which runs the poll loop) to serve the web UI.
+    dockerCommand: pnpm run serve
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Use the committed fixture X driver — no X API credentials needed for the
+      # demo. Switch to "live" + add X_BEARER_TOKEN to poll real X.
+      - key: X_DRIVER
+        value: fixture
+      # File-backed state (ephemeral on Render free; fine for a demo runtime).
+      - key: STATE_STORE
+        value: file
+      - key: LOG_LEVEL
+        value: info
+      # Required for LLM reply drafting. Set in the dashboard (kept out of git).
+      - key: OPENAI_API_KEY
+        sync: false

@@ -15,6 +15,8 @@
     "run": "tsx src/cli.ts run",
     "run:dry": "tsx src/cli.ts run --dry-run",
     "run:watch": "tsx src/cli.ts run --watch",
+    "serve": "tsx src/web/server.ts",
+    "start": "node dist/src/web/server.js",
     "validate-config": "tsx src/cli.ts validate-config",
     "asana:ids": "tsx src/tools/asana-ids.ts",
     "langsmith:check": "tsx src/tools/langsmith-check.ts",
@@ -27,6 +29,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:design": "playwright test",
+    "test:design:install": "playwright install chromium",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\""
@@ -46,6 +50,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@types/aws-lambda": "^8.10.147",
     "@types/node": "^22.10.7",
     "@typescript-eslint/eslint-plugin": "^8.21.0",

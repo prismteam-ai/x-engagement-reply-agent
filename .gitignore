@@ -7,6 +7,11 @@ data/
 coverage/
 .DS_Store
 
+# Playwright design-test artifacts
+test-results/
+playwright-report/
+blob-report/
+
 # Demo videos live in the PR description, not the repo
 docs/*.mp4
 

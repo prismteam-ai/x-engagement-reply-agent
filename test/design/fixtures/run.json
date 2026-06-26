@@ -1,0 +1,117 @@
+{
+  "summary": {
+    "startedAt": "2026-06-26T12:00:00.000Z",
+    "finishedAt": "2026-06-26T12:00:03.000Z",
+    "dryRun": true,
+    "authorsPolled": 1,
+    "postsFetched": 2,
+    "newPostsProcessed": 2,
+    "ingested": 0,
+    "parentTasksCreated": 1,
+    "subtasksCreated": 2,
+    "skipped": 1,
+    "failed": 0,
+    "results": [
+      {
+        "post": {
+          "sourceUri": "https://x.com/balajis/status/1001",
+          "statusId": "1001",
+          "handle": "balajis",
+          "header": "On network states",
+          "text": "Network states are the next frontier for digital-first communities organizing around a shared mission."
+        },
+        "outcome": "tasked",
+        "bestRawScore": 0.8421,
+        "matches": [
+          {
+            "title": "The Network State Thesis",
+            "sourceUri": "https://soofi.example/articles/network-state",
+            "rawScore": 0.8421,
+            "score": 84,
+            "excerpt": "Digital-first communities can coordinate capital and identity before they hold territory.",
+            "content": "Full article body grounding the reply draft."
+          }
+        ]
+      },
+      {
+        "post": {
+          "sourceUri": "https://x.com/balajis/status/1002",
+          "statusId": "1002",
+          "handle": "balajis",
+          "header": "Quick aside",
+          "text": "Just grabbed a coffee before the flight."
+        },
+        "outcome": "skipped",
+        "reason": "below article similarity threshold",
+        "bestRawScore": 0.41,
+        "matches": []
+      }
+    ]
+  },
+  "parentTasks": [
+    {
+      "id": "parent-1",
+      "statusId": "1001",
+      "handle": "balajis",
+      "bestRawScore": 0.8421,
+      "dueToday": true,
+      "matchCount": 1
+    }
+  ],
+  "subtasks": [
+    {
+      "id": "subtask-2",
+      "parentTaskId": "parent-1",
+      "post": {
+        "sourceUri": "https://x.com/balajis/status/1001",
+        "statusId": "1001",
+        "handle": "balajis",
+        "header": "On network states",
+        "text": "Network states are the next frontier for digital-first communities organizing around a shared mission."
+      },
+      "article": {
+        "title": "The Network State Thesis",
+        "sourceUri": "https://soofi.example/articles/network-state",
+        "rawScore": 0.8421,
+        "score": 84,
+        "excerpt": "Digital-first communities can coordinate capital and identity before they hold territory.",
+        "content": "Full article body grounding the reply draft."
+      },
+      "draft": {
+        "promptIndex": 1,
+        "promptLabel": "Prompt 1",
+        "promptText": "Draft a concise, grounded reply.",
+        "suggestedResponse": "Soofi's network-state thesis frames exactly this: communities can align capital and identity online well before they hold any territory.",
+        "whyRecommended": "Directly grounded in The Network State Thesis, which argues digital coordination precedes physical territory."
+      },
+      "composeLink": "https://x.com/intent/post?text=Soofi%27s%20network-state%20thesis%20frames%20exactly%20this&in_reply_to=1001"
+    },
+    {
+      "id": "subtask-3",
+      "parentTaskId": "parent-1",
+      "post": {
+        "sourceUri": "https://x.com/balajis/status/1001",
+        "statusId": "1001",
+        "handle": "balajis",
+        "header": "On network states",
+        "text": "Network states are the next frontier for digital-first communities organizing around a shared mission."
+      },
+      "article": {
+        "title": "The Network State Thesis",
+        "sourceUri": "https://soofi.example/articles/network-state",
+        "rawScore": 0.8421,
+        "score": 84,
+        "excerpt": "Digital-first communities can coordinate capital and identity before they hold territory.",
+        "content": "Full article body grounding the reply draft."
+      },
+      "draft": {
+        "promptIndex": 2,
+        "promptLabel": "Prompt 2",
+        "promptText": "Draft a reply that asks one genuine question.",
+        "suggestedResponse": "Curious how you see network states bootstrapping legitimacy — does shared capital or shared identity have to come first?",
+        "whyRecommended": "Opens a genuine question rooted in the article's sequencing of capital and identity."
+      },
+      "composeLink": "https://x.com/intent/post?text=Curious%20how%20you%20see%20network%20states&in_reply_to=1001"
+    }
+  ]
+}
