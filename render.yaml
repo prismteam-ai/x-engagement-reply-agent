@@ -6,9 +6,19 @@
 #
 # Deploy: push this repo to GitHub, then in the Render dashboard
 #   New + → Blueprint → pick this repo. Render reads this file.
-# After the first deploy, set the OPENAI_API_KEY secret (below) in the
-# service's Environment tab so reply drafting works; matching + config render
-# without it (affected posts just show outcome "failed").
+#
+# Two operating modes:
+#   * DEFAULT (dry-run + fixture): the only secret needed is OPENAI_API_KEY for
+#     reply drafting. Matching + config render without it (affected posts just
+#     show outcome "failed"). No X / Asana / LangSmith creds are required and no
+#     token gate applies — these runs poll committed fixtures and write nothing.
+#   * LIVE (opt-in per request from the UI): polls real X and creates real Asana
+#     tasks with LangSmith tracing. Requires RUN_TOKEN (the shared secret the UI
+#     sends as X-Run-Token) PLUS X_BEARER_TOKEN, ASANA_PERSONAL_ACCESS_TOKEN, and
+#     the LANGSMITH_* vars. If RUN_TOKEN is unset, the server refuses live runs.
+# Asana GIDs (workspace/project/section/assignee) and the watchlist handles are
+# already committed in config/, so only the secrets below need setting.
+# Set every `sync: false` var in the service's Environment tab (kept out of git).
 services:
   - type: web
     name: x-engagement-reply-agent
@@ -30,6 +40,24 @@ services:
         value: file
       - key: LOG_LEVEL
         value: info
-      # Required for LLM reply drafting. Set in the dashboard (kept out of git).
+      # Required for LLM reply drafting (used in both modes). Set in dashboard.
       - key: OPENAI_API_KEY
+        sync: false
+      # --- Live mode (opt-in per request via the UI) ---
+      # Shared secret gating privileged runs. The UI sends it as X-Run-Token.
+      # Leave unset to disable live mode entirely (server returns 403).
+      - key: RUN_TOKEN
+        sync: false
+      # Real X polling (live X driver). Required when driver=live.
+      - key: X_BEARER_TOKEN
+        sync: false
+      # Real Asana writes. Required when dryRun=false (real task creation).
+      - key: ASANA_PERSONAL_ACCESS_TOKEN
+        sync: false
+      # LangSmith tracing for live runs.
+      - key: LANGSMITH_TRACING
+        value: "true"
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: LANGSMITH_PROJECT
         sync: false

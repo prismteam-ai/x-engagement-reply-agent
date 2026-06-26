@@ -3,11 +3,19 @@ import { composeIntentLink } from "../domain/pipeline-logic.js";
 import type { ArticleMatch, PostCandidate, ReplyDraft } from "../domain/types.js";
 
 /**
- * An in-memory {@link AsanaClient} for the web runtime. The pipeline only ever
+ * An {@link AsanaClient} DECORATOR for the web runtime. The pipeline only ever
  * exposes generated reply drafts to its Asana client, so to surface them in the
- * dashboard we inject this capturing client instead of the dry-run logger. It
- * performs no writes; it records the parent tasks and subtasks (with the post,
- * matched article, draft, and X compose link) that a real run would create.
+ * dashboard we wrap whatever client {@link buildDeps} produced and record each
+ * parent task / subtask it is asked to create (with the post, matched article,
+ * draft, and X compose link) before delegating to the wrapped client.
+ *
+ * It performs NO writes of its own — it forwards every call to the delegate and
+ * returns the delegate's real gid:
+ *   - dry-run  → delegate is `DryRunAsanaClient` (no writes, fake gids)
+ *   - live     → delegate is `AsanaApiClient` (real writes, real gids)
+ *
+ * Recording with the delegate's gid keeps `parentTaskId` linkage correct in both
+ * modes, so subtasks render under the right post regardless of driver.
  */
 
 export interface CapturedParentTask {
@@ -30,13 +38,14 @@ export interface CapturedSubtask {
   composeLink: string;
 }
 
-export class CapturingAsanaClient implements AsanaClient {
-  private counter = 0;
+export class RecordingAsanaClient implements AsanaClient {
   readonly parentTasks: CapturedParentTask[] = [];
   readonly subtasks: CapturedSubtask[] = [];
 
+  constructor(private readonly delegate: AsanaClient) {}
+
   async createParentTask(input: ParentTaskInput): Promise<string> {
-    const id = `parent-${++this.counter}`;
+    const id = await this.delegate.createParentTask(input);
     this.parentTasks.push({
       id,
       statusId: input.post.statusId,
@@ -50,7 +59,7 @@ export class CapturingAsanaClient implements AsanaClient {
   }
 
   async createSubtask(input: SubtaskInput): Promise<string> {
-    const id = `subtask-${++this.counter}`;
+    const id = await this.delegate.createSubtask(input);
     this.subtasks.push({
       id,
       parentTaskId: input.parentTaskId,

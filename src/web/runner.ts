@@ -3,16 +3,18 @@ import { buildDeps } from "../pipeline/build.js";
 import { runMonitor } from "../pipeline/monitor.js";
 import type { RunSummary } from "../domain/types.js";
 import {
-  CapturingAsanaClient,
+  RecordingAsanaClient,
   type CapturedParentTask,
   type CapturedSubtask,
-} from "./capturing-asana-client.js";
+} from "./recording-asana-client.js";
 
 /**
  * Thin adapters between the verified pipeline contract and the HTTP layer. No
  * pipeline logic lives here — these only project the code-managed config for the
- * dashboard and run the dry-run / fixture pipeline with a capturing Asana client
- * so the generated reply drafts can be returned to the browser.
+ * dashboard and run the pipeline (dry-run+fixture by default, or live) with a
+ * recording Asana client so the generated reply drafts can be returned to the
+ * browser. The recording client wraps whatever driver buildDeps produced, so the
+ * same projection works for both no-write dry-runs and real Asana writes.
  */
 
 export interface ConfigView {
@@ -77,14 +79,30 @@ export function loadConfigView(): ConfigView {
   };
 }
 
+export interface RunOptions {
+  /** Restrict the run to a single watched author handle. */
+  onlyHandle?: string;
+  /** X driver: committed fixtures (default) or live X polling. */
+  driver?: "fixture" | "live";
+  /** When true (default), the Asana delegate performs NO writes. */
+  dryRun?: boolean;
+}
+
 /**
- * Run one dry-run / fixture pass. `onlyHandle` isolates a single watched author.
- * The pipeline never crashes on a missing LLM key; affected posts come back with
- * outcome "failed", which the dashboard surfaces rather than erroring.
+ * Run one pipeline pass. Defaults to dry-run + fixture (no writes, no creds).
+ * `onlyHandle` isolates a single watched author. In dry-run the pipeline never
+ * crashes on a missing LLM key; affected posts come back with outcome "failed",
+ * which the dashboard surfaces rather than erroring.
+ *
+ * Live mode (driver="live" and/or dryRun=false) wires the real X driver and the
+ * real AsanaApiClient. AsanaApiClient throws if ASANA_PERSONAL_ACCESS_TOKEN is
+ * unset; that error propagates so the server can return a clean message.
  */
-export async function runPipeline(onlyHandle?: string): Promise<RunResult> {
-  const deps = buildDeps({ dryRun: true, xDriver: "fixture" });
-  const capture = new CapturingAsanaClient();
-  const summary = await runMonitor({ ...deps, asana: capture }, { onlyHandle });
-  return { summary, parentTasks: capture.parentTasks, subtasks: capture.subtasks };
+export async function runPipeline(opts: RunOptions = {}): Promise<RunResult> {
+  const driver = opts.driver ?? "fixture";
+  const dryRun = opts.dryRun ?? true;
+  const deps = buildDeps({ dryRun, xDriver: driver });
+  const rec = new RecordingAsanaClient(deps.asana);
+  const summary = await runMonitor({ ...deps, asana: rec }, { onlyHandle: opts.onlyHandle });
+  return { summary, parentTasks: rec.parentTasks, subtasks: rec.subtasks };
 }

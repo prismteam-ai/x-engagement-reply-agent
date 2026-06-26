@@ -82,21 +82,40 @@ function populateAuthorSelect(authors) {
   }
 }
 
+/** A run is privileged (live X poll and/or real Asana writes) when the driver is
+ *  live or the dry-run toggle is unchecked. Drives the warning + button label. */
+function isPrivileged() {
+  return $("#driver-select").value === "live" || !$("#dryrun-toggle").checked;
+}
+
+function syncRunControls() {
+  $("#live-warning").hidden = !isPrivileged();
+  $("#run-button").textContent = isPrivileged() ? "Run pipeline (LIVE)" : "Run pipeline (dry-run)";
+}
+
 async function runPipeline() {
   const button = $("#run-button");
   const status = $("#run-status");
   const runError = $("#run-error");
   const author = $("#author-select").value;
+  const driver = $("#driver-select").value;
+  const dryRun = $("#dryrun-toggle").checked;
+  const token = $("#run-token").value.trim();
 
   button.disabled = true;
-  status.textContent = "Running dry-run pipeline…";
+  status.textContent = isPrivileged() ? "Running LIVE pipeline…" : "Running dry-run pipeline…";
   runError.hidden = true;
+
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["X-Run-Token"] = token;
+  const body = { driver, dryRun };
+  if (author) body.author = author;
 
   try {
     const res = await fetch("/api/run", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(author ? { author } : {}),
+      headers,
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data && data.error ? data.error : `run failed (${res.status})`);
@@ -201,4 +220,7 @@ function renderDraft(st) {
 document.addEventListener("DOMContentLoaded", () => {
   loadConfig();
   $("#run-button").addEventListener("click", runPipeline);
+  $("#driver-select").addEventListener("change", syncRunControls);
+  $("#dryrun-toggle").addEventListener("change", syncRunControls);
+  syncRunControls();
 });
