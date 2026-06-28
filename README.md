@@ -6,8 +6,8 @@ A standalone, code-managed agent that polls watched X authors, matches their pos
 >
 > | | |
 > |---|---|
-> | **Live runtime** | RUNTIME_URL_PLACEHOLDER |
-> | **Demo video** | DEMO_VIDEO_PLACEHOLDER |
+> | **Live runtime** | **https://decidueye-xi.vercel.app** — open it, pick an author, press ▶ Run agent (no login) |
+> | **Demo video** | _added before final submission_ |
 > | **Assignment / user story** | [ASSIGNMENT.md](./ASSIGNMENT.md) (the provided brief, preserved verbatim) |
 > | **Integrated source (both milestones)** | [bokykisac/soofi-agent-network](https://github.com/bokykisac/soofi-agent-network) |
 >
