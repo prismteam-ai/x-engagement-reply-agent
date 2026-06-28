@@ -210,8 +210,11 @@ function RunResult({ result }: { result: WebRunResult }) {
               {asana.map((parent, pi) => (
                 <div key={pi} className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
                   <div className="text-sm font-medium text-slate-200">📋 {parent.name}</div>
-                  <div className="mt-0.5 text-xs text-slate-500">
-                    parent · score {parent.topScore100} · {parent.subtasks.length} approval subtasks
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                    <span>parent · score {parent.topScore100} · {parent.subtasks.length} approval subtasks</span>
+                    <span aria-hidden>·</span>
+                    <span>assignee: {parent.assignee}</span>
+                    {parent.dueToday && <span className="chip border-amber-400/30 text-amber-200">due today</span>}
                   </div>
                   <ul className="mt-2 space-y-1.5">
                     {parent.subtasks.map((s, si) => (

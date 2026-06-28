@@ -80,50 +80,88 @@ function inferMode(label: string, text: string): Mode {
   return "recommend";
 }
 
+/** Wrap the quoted phrase: period inside for a complete phrase, none after an ellipsis. */
+function quoteBlock(quote: string): string {
+  const inner = quote.endsWith("…") ? quote : `${quote}.`;
+  return `“${inner}”`;
+}
+
 function compose(mode: Mode, quote: string, closer: string): string {
-  const opener: Record<Mode, string> = {
-    recommend: `Soofi's argument fits here: “${quote}.”`,
-    agree: `Agreed — and Soofi pushes it further: “${quote}.”`,
-    counter: `Fair, though Soofi would qualify it: “${quote}.”`,
-    example: `Concretely, as Soofi puts it: “${quote}.”`,
-    thesis: `“${quote}.”`,
+  const lead: Record<Mode, string> = {
+    recommend: "Soofi's argument fits here:",
+    agree: "Agreed — and Soofi pushes it further:",
+    counter: "Fair, though Soofi would qualify it:",
+    example: "Concretely, as Soofi puts it:",
+    thesis: "",
   };
-  return fitToLimit(`${opener[mode]} ${closer}`, quote, opener[mode], closer, mode);
+  const head = lead[mode] ? `${lead[mode]} ${quoteBlock(quote)}` : quoteBlock(quote);
+  return fitToLimit(`${head} ${closer}`, quote, closer, mode);
 }
 
-/** Ensure the composed reply fits in 280 chars, trimming the quote first if needed. */
-function fitToLimit(full: string, quote: string, opener: string, closer: string, mode: Mode): string {
+/** Ensure the composed reply fits in 280 chars, trimming the quote on a word boundary first. */
+function fitToLimit(full: string, quote: string, closer: string, mode: Mode): string {
   if (full.length <= CHAR_LIMIT) return full;
-  // Trim the quote and rebuild.
   const overflow = full.length - CHAR_LIMIT;
-  const trimmedQuote = quote.length > overflow + 1 ? quote.slice(0, quote.length - overflow - 1).trimEnd() + "…" : quote;
-  const rebuilt = compose(mode, trimmedQuote, closer);
-  return rebuilt.length <= CHAR_LIMIT ? rebuilt : rebuilt.slice(0, CHAR_LIMIT - 1).trimEnd() + "…";
+  // Trim the quote back to a whole word, then mark the elision with an ellipsis.
+  const trimmed = quote
+    .slice(0, Math.max(0, quote.length - overflow - 2))
+    .replace(/\s+\S*$/, "")
+    .replace(/[.,;:—-]+$/, "")
+    .trimEnd();
+  if (trimmed.length >= 12) {
+    const rebuilt = compose(mode, `${trimmed}…`, closer);
+    if (rebuilt.length <= CHAR_LIMIT) return rebuilt;
+  }
+  // Fall back to a hard cut on a word boundary.
+  return full.slice(0, CHAR_LIMIT - 1).replace(/\s+\S*$/, "").trimEnd() + "…";
 }
 
-/** Pick a short, quotable phrase from the article content. */
+/** Pick a short, quotable phrase from the article content (never cut mid-word). */
 export function pickQuote(excerpt: string, passages: string[]): string {
-  const source = passages[0] ?? excerpt;
+  const source = (passages[0] ?? excerpt).replace(/\s+/g, " ").trim();
   const sentences = source
-    .replace(/\s+/g, " ")
     .split(/(?<=[.!?])\s/)
     .map((s) => s.trim())
-    .filter((s) => s.length >= 20 && s.length <= 120 && !/^#/.test(s));
-  const chosen = sentences[0] ?? source.slice(0, 100);
+    .filter((s) => s.length >= 20 && s.length <= 180 && !/^#/.test(s));
+  let chosen = sentences[0];
+  if (!chosen) {
+    // No clean sentence — prefer the first clause, else a word-bounded slice.
+    const clause = (source.split(/[,;:]/)[0] ?? "").trim();
+    chosen = clause.length >= 20 && clause.length <= 160 ? clause : source.slice(0, 150).replace(/\s+\S*$/, "").trim();
+  }
   return chosen.replace(/[.!?]+$/, "").replace(/^["“”']+|["“”']+$/g, "").trim();
 }
 
-/** A coarse theme noun-phrase derived from the article title. */
+/**
+ * A clean, concise noun-phrase derived from the article title — used as a topic
+ * label in the closing question, the "why recommended" line, and the CTA. We
+ * stop at the first verb/modal so the phrase stays grammatical when slotted into
+ * a sentence (e.g. "Privacy-First Property Tokenization MUST separate…" →
+ * "privacy-first property tokenization", not "…tokenization must separate digital").
+ */
 export function pickTheme(title: string): string {
   const cleaned = title
     .replace(/^core principle:?\s*/i, "")
     .replace(/[.:].*$/, "")
     .toLowerCase()
     .trim();
-  const words = cleaned.split(/\s+/).slice(0, 6).join(" ");
-  return words || "verifiable property data";
+  const stop = new Set([
+    "must", "should", "will", "can", "may", "is", "are", "be", "needs", "need",
+    "separate", "requires", "require", "means", "breaks", "break", "enables", "enable", "that", "which",
+  ]);
+  const phrase: string[] = [];
+  for (const w of cleaned.split(/\s+/)) {
+    if (stop.has(w)) break;
+    phrase.push(w);
+    if (phrase.length >= 4) break;
+  }
+  return phrase.join(" ").replace(/[-,]$/, "") || "verifiable property data";
 }
 
+// Self-contained, grammatical questions. They reference the post's idea via
+// "this" contextually (the reply already quotes the article), so we never splice
+// a raw title fragment into them — that produced broken grammar like
+// "…make privacy-first property tokenization must separate digital real at scale?".
 const QUESTIONS = [
   "What breaks first if we keep pretending the old system is fine?",
   "How would your model change if this were verifiable end to end?",
@@ -134,8 +172,11 @@ const QUESTIONS = [
 ];
 
 function pickQuestion(index: number, theme: string): string {
-  const base = QUESTIONS[(index - 1) % QUESTIONS.length]!;
-  return base.includes("this") ? base.replace("this", theme) : base;
+  // `theme` is intentionally unused in the question now (kept in the signature
+  // for the grounded `whyRecommended` / CTA which still reference it). Returning
+  // the base question verbatim keeps every draft grammatical.
+  void theme;
+  return QUESTIONS[(index - 1) % QUESTIONS.length]!;
 }
 
 function pickCallToAction(theme: string): string {

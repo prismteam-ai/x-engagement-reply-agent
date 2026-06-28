@@ -41,6 +41,10 @@ export interface AsanaParentView {
   statusId: string;
   thresholdMet: boolean;
   topScore100: number;
+  /** Threshold-based assignee rule the live Asana adapter would apply. */
+  assignee: string;
+  /** The live adapter sets a same-day due date when the threshold assignee rule applies. */
+  dueToday: boolean;
   subtasks: AsanaSubtaskView[];
 }
 
@@ -144,11 +148,17 @@ function buildAsanaView(artifact: RunArtifact): AsanaParentView[] {
         });
       }
     }
+    const thresholdMet = subtasks.length > 0;
     parents.push({
       name: parentTaskName(watch, rec.post),
       statusId: rec.post.statusId,
-      thresholdMet: subtasks.length > 0,
+      thresholdMet,
       topScore100: rec.matches[0]?.score100 ?? 0,
+      // Mirrors the Asana adapter: when the article threshold is met, the parent
+      // routes to the threshold-rule assignee and is due today; otherwise it
+      // goes to the default assignee with no due date.
+      assignee: thresholdMet ? "threshold-rule assignee (ASANA_ARTICLE_THRESHOLD_ASSIGNEE_GID)" : "default assignee (ASANA_ASSIGNEE_GID)",
+      dueToday: thresholdMet,
       subtasks,
     });
   }
