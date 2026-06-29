@@ -1,0 +1,155 @@
+id: xatu
+name: X Engagement Reply Agent
+description: >-
+  Monitors a code-managed watchlist of X authors, detects new posts and
+  referenced originals, matches each post against Soofi Safavi article content
+  via the hosted investors-mcp endpoint, drafts multiple recommended replies
+  with Amazon Bedrock from version-controlled prompt files, and creates Asana
+  parent tasks with approval subtasks for human review.
+version: 0.1.0
+owner: soofi-xyz
+runtime: nextjs-node
+homepage: https://xatu-agent.vercel.app
+
+# Alignment with the Soofi XYZ Team Kit reference pattern.
+# The kit's reference runtime is Lambda + CDK + Asana webhooks with
+# @soofi-xyz/chat-adapter-asana, @soofi-xyz/chat-state-dynamodb, AgentCore
+# memory, Bedrock + AI SDK ToolLoopAgent, prompt caching, and LangSmith.
+# See README.md "Architecture & team-kit alignment" for the full rationale.
+alignment:
+  adopted:
+    - "@soofi-xyz/chat-adapter-asana for outbound Asana task/subtask writes"
+    - bedrock-aisdk-toolloopagent-for-reply-drafting
+    - bedrock-prompt-caching
+    - langsmith-run-tracing
+    - code-managed-prompts
+    - pokemon-agent-naming-convention
+    - manifest-registration
+  deviations:
+    - choice: nextjs-vercel-with-scheduled-cron
+      instead_of: aws-lambda-cdk-with-asana-webhook
+      reason: >-
+        Trigger is a scheduled watchlist poll, not an inbound Asana event, so a
+        cron-driven serverless function on a hosted Vercel runtime is the natural
+        fit and is publicly exercisable without a separate CDK stack.
+    - choice: hand-rolled-dynamodb-state-store
+      instead_of: "@soofi-xyz/chat-state-dynamodb + AgentCore memory"
+      reason: >-
+        State needed is operational cursors, dedupe keys, and run summaries (not
+        multi-turn chat history). The store is abstracted behind a StateBackend
+        interface; swapping in @soofi-xyz/chat-state-dynamodb and/or moving to the
+        Lambda + CDK layout is a documented, low-friction upgrade path.
+
+capabilities:
+  - targeted-author-x-polling
+  - new-post-and-referenced-post-detection
+  - long-form-x-article-enrichment
+  - post-dedupe-by-source-uri-and-status-id
+  - semantic-article-matching-via-investors-mcp
+  - similarity-thresholded-task-gating
+  - multi-prompt-reply-drafting-with-bedrock
+  - asana-parent-and-subtask-creation
+  - similarity-custom-fields-on-asana-tasks
+  - threshold-based-assignee-and-due-date
+  - dry-run-without-knowledge-base-or-asana-writes
+  - langsmith-run-tracing
+  - external-state-persistence-in-dynamodb
+
+triggers:
+  - type: schedule
+    description: Scheduled poll of the watchlist.
+    source: vercel-cron
+    schedule: "0 8 * * *"
+    target: "/api/monitor-x?dryRun=false"
+    auth: bearer-cron-secret
+  - type: http
+    description: Authorized real run.
+    method: GET
+    target: "/api/monitor-x?dryRun=false"
+    auth: bearer-cron-secret
+  - type: http
+    description: Public dry-run that serves the latest saved organic run snapshot.
+    method: GET
+    target: "/api/monitor-x?dryRun=true"
+    auth: none
+
+inputs:
+  watchlist:
+    source: config/watchlist.yaml
+    description: Watched authors with name, handle, company, aliases, and active flag.
+  settings:
+    source: config/settings.yaml
+    description: Poll cadence, batch size, max posts per author, similarity thresholds, model id.
+  prompts:
+    source: prompts/
+    description: System prompt, global constraints, and one Markdown file per reply slot.
+  posts:
+    source: x-api-v2
+    description: Tweets and referenced originals for watched authors.
+  articleMatches:
+    source: investors-mcp
+    description: queryInvestorContent semantic matches against Soofi article content.
+
+outputs:
+  asanaParentTask:
+    sink: asana
+    description: One parent task per qualifying post with similarity metadata and notes.
+  asanaApprovalSubtasks:
+    sink: asana
+    description: One subtask per reply prompt with the drafted reply and an X compose link.
+  similarityCustomFields:
+    sink: asana
+    description: Raw and normalized similarity number custom fields on tasks and subtasks.
+  runSummary:
+    sink: dynamodb
+    description: Per-post outcomes (ingested, skipped, tasked, failed) and the run snapshot.
+  llmTraces:
+    sink: langsmith
+    description: Traceable reply-generation runs in the configured LangSmith project.
+
+requiredEnv:
+  - AWS_REGION
+  - AWS_ACCESS_KEY_ID
+  - AWS_SECRET_ACCESS_KEY
+  - AWS_BEARER_TOKEN_BEDROCK
+  - BEDROCK_MODEL_ID
+  - DYNAMODB_TABLE
+  - X_BEARER_TOKEN
+  - ASANA_PAT
+  - ASANA_PROJECT_GID
+  - ASANA_WORKSPACE_GID
+  - ASANA_DEFAULT_ASSIGNEE_GID
+  - ASANA_THRESHOLD_ASSIGNEE_GID
+  - ASANA_RAW_SIMILARITY_FIELD_GID
+  - ASANA_NORMALIZED_SIMILARITY_FIELD_GID
+  - LANGSMITH_API_KEY
+  - LANGSMITH_PROJECT
+  - CRON_SECRET
+
+optionalEnv:
+  - INVESTORS_MCP_URL
+  - INVESTORS_MCP_MAX_RETRIES
+  - INVESTORS_MCP_REQUEST_TIMEOUT_MS
+  - X_MAX_RETRIES
+  - X_REQUEST_TIMEOUT_MS
+  - ASANA_MAX_RETRIES
+  - ASANA_REQUEST_TIMEOUT_MS
+  - BEDROCK_MAX_CONCURRENCY
+  - BEDROCK_MAX_RETRIES
+  - BEDROCK_REQUEST_TIMEOUT_MS
+
+deployment:
+  platform: vercel
+  framework: nextjs
+  build: pnpm build
+  schedule: vercel.json crons
+  endpoints:
+    - path: /
+      auth: none
+      description: Landing page.
+    - path: /status
+      auth: none
+      description: Latest organic run summary with matches, scores, and drafts.
+    - path: /api/monitor-x
+      auth: bearer-cron-secret-for-real-runs
+      description: Monitor entrypoint; public dry-run returns the saved snapshot.

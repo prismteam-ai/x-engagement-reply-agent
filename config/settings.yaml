@@ -1,0 +1,57 @@
+# X Engagement Reply Agent — automation settings (code-managed config)
+#
+# Mirrors MonitorAutomationSettings from investors-mcp
+# (lib/automation/monitor-settings.ts), but version-controlled instead of
+# Postgres/admin-UI managed. Parsed + validated by src/config/load-settings.ts.
+#
+# All values are optional: omit a key to take the documented default.
+
+# --- Polling cadence & batching ---
+# Local/run cadence in minutes (1..1440) for ad-hoc loops. The DEPLOYED schedule
+# is the Vercel cron in vercel.json (0 8 * * *, daily 08:00 UTC), NOT this value;
+# this is only the cadence for local/manual runs.
+pollIntervalMinutes: 2
+# Authors polled per scheduled run. Each run processes a rotating slice of this
+# many active watchlist authors; the rotation offset is persisted in external
+# state so consecutive runs advance through the watchlist. 1..20.
+defaultBatchSize: 5
+# Max posts fetched per author per run. 1..100.
+defaultMaxPostsPerAuthor: 20
+
+# --- Article matching ---
+# Number of candidate articles requested from the MCP per post. 1..40.
+# README requires topK: 40 for the queryInvestorContent query. The hosted MCP
+# server currently caps the wire value at 20 and errors above it, so the client
+# (src/mcp/investor-content-client.ts) clamps the request to that server max while
+# this configured intent stays 40 per the spec.
+defaultTopK: 40
+
+# --- Threshold gating (raw cosine similarity, 0..1) ---
+# Best-match raw similarity required to create a parent Asana task. A post is
+# tasked ONLY when it has >=1 Soofi article match at/above this value; posts with
+# no qualifying match are SKIPPED (no parent task). Aligned with the per-article
+# recommendation threshold so the parent gate and the subtask gate agree.
+# 0.68 chosen empirically: on-topic RWA/property posts cluster at 0.68-0.75 against
+# Soofi's corpus, off-topic posts score <=0.66 — so 0.68 sits at the bottom of the
+# on-topic cluster (admits genuine thematic matches, excludes noise / empty tasks).
+asanaTaskSimilarityThreshold: 0.68
+# Per-article raw similarity required to emit reply recommendation subtasks.
+articleSimilarityThreshold: 0.68
+
+# --- LLM ---
+# Bedrock model id used for reply drafting. This is the configured source of the
+# model selection; the BEDROCK_MODEL_ID env var, when set, overrides it at runtime.
+bedrockModelId: us.anthropic.claude-opus-4-6-v1
+
+# --- Author exclusion ---
+# Normalized handles/authors whose own posts never produce Asana tasks.
+# Mirrors shouldSkipAsanaTaskForAuthor (the corpus author's own posts).
+excludeAuthors:
+  - ssafavi
+
+# --- Run modes ---
+# When true the agent never polls (parity with MonitorAutomationSettings.paused).
+paused: false
+# When true the pipeline runs end-to-end but performs no KB writes or Asana
+# task creation. Can also be forced per-invocation by the runner.
+dryRun: false
