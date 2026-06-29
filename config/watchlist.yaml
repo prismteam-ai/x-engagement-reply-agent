@@ -1,0 +1,89 @@
+# X Engagement Reply Agent — watched authors (code-managed config)
+#
+# Mirrors the managed_authors table from investors-mcp, but version-controlled.
+# Parsed + validated by src/config/load-watchlist.ts. Use loadActiveWatchlist()
+# (or the exported active filter) to skip authors with active: false.
+#
+# Shape per author:
+#   author   (required) display name
+#   handle   (required) primary X handle, without the leading "@"
+#   company  (optional) affiliation slug
+#   aliases  (optional) { handles: [...], authors: [...] } alternate identities
+#   active   (optional, default true) include this author in polling rotation
+#
+# AUTHOR CURATION (empirical, not aspirational)
+# ---------------------------------------------
+# These handles were curated by EMPIRICALLY verifying — with the live X API +
+# the real no-token MCP `getTopSoofiArticleSimilarities` — that their RECENT,
+# REAL posts actually clear the 0.70 raw-similarity gate against Soofi Safavi's
+# real-world-asset / property-tokenization / on-chain real-estate / open-data /
+# crypto-infrastructure article corpus. (Harness: scripts/discover-authors.ts.)
+#
+# Best organic raw score observed per author (recent timeline, June 2026 run):
+#   centrifuge     0.7515  (MULTIPLE tweets >=0.70 — most reliable clearer)
+#   realtplatform  0.7226  (property tokenization — closest to the corpus theme)
+#   plumenetwork   0.7104  (RWA / open-finance infrastructure)
+#   ondofinance    0.7019  (tokenized assets / 24-7 markets)
+# Rejected during discovery: propy (timeline is abandoned/spam → 0.00),
+#   rwa_inc (no relevant recent posts). mantra_chain / securitize / polytrade_fin
+#   also clear regularly and are good substitutes if any author above goes quiet.
+
+authors:
+  - author: "Soofi Safavi"
+    handle: "ssafavi"
+    company: "elephant-xyz"
+    aliases:
+      handles: []
+      authors: []
+    # Corpus author. Polled for engagement context but excluded from Asana
+    # tasking via excludeAuthors in settings.yaml.
+    active: true
+
+  - author: "Centrifuge"
+    handle: "centrifuge"
+    company: "centrifuge"
+    aliases:
+      handles: []
+      authors: ["Centrifuge RWA"]
+    # Most reliable organic clearer: several recent tweets >=0.70 against the
+    # Soofi RWA corpus (best observed 0.7515).
+    active: true
+
+  - author: "RealT"
+    handle: "realtplatform"
+    company: "realt"
+    aliases:
+      handles: ["realtoken_intl"]
+      authors: ["RealToken"]
+    # On-chain real estate / property tokenization — the closest theme to Soofi's
+    # property-ledger articles (best observed 0.7226).
+    active: true
+
+  - author: "Plume"
+    handle: "plumenetwork"
+    company: "plume-network"
+    aliases:
+      handles: []
+      authors: ["Plume Network"]
+    # RWA / open-finance infrastructure (best observed 0.7104).
+    active: true
+
+  - author: "Ondo Finance"
+    handle: "ondofinance"
+    company: "ondo-finance"
+    aliases:
+      handles: []
+      authors: ["Ondo"]
+    # Tokenized assets / 24-7 on-chain markets (best observed 0.7019).
+    active: true
+
+  # Inactive example — kept in config but skipped by the active filter. Also a
+  # vetted substitute: securitize, polytrade_fin, and mantra_chain all clear the
+  # gate regularly and can be activated if a primary author goes quiet.
+  - author: "Securitize"
+    handle: "securitize"
+    company: "securitize"
+    aliases:
+      handles: []
+      authors: []
+    active: false

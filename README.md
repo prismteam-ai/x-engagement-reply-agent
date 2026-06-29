@@ -192,6 +192,62 @@ Read access to MCP query tools is currently open (no read token required). Optio
 - Postgres-backed watchlist or automation settings in investors-mcp
 - Rebuilding or replacing the MCP server or RAG platform
 
+## Architecture & team-kit alignment
+
+This section records how the agent maps onto the [Soofi XYZ Team Kit](https://github.com/soofi-xyz/soofi-xyz-team-kit) reference pattern, which parts of that pattern it adopts directly, and where it deliberately diverges with the engineering reasoning behind each divergence.
+
+### The kit's reference runtime
+
+The kit's `build-ai-agents` reference pattern describes a **rules-agent** runtime built around:
+
+- **AWS Lambda + CDK** for deployment and infrastructure-as-code,
+- an **Asana webhook** trigger (the agent reacts to Asana mentions/events via `@soofi-xyz/chat-adapter-asana`),
+- **`@soofi-xyz/chat-state-dynamodb`** plus **AgentCore memory** for conversation/session state,
+- a **Bedrock + Vercel AI SDK `ToolLoopAgent`** for model orchestration, with **Bedrock prompt caching**,
+- **LangSmith** for run tracing, and **code-managed prompts**,
+- the **Pokémon agent-naming convention** and **manifest registration** for the Agent Network.
+
+### What this agent adopts directly
+
+This agent follows the kit wherever the convention is independent of the runtime container:
+
+| Kit convention | This agent |
+|----------------|------------|
+| Asana integration via `@soofi-xyz/chat-adapter-asana` | Uses the kit adapter (`@soofi-xyz/chat-adapter-asana` in `package.json`; `src/asana/asana-client.ts`). |
+| Bedrock + AI SDK `ToolLoopAgent` | `src/agent/tool-loop-agent.ts` drives reply drafting through the AI SDK `ToolLoopAgent` on Amazon Bedrock. |
+| Bedrock prompt caching | `src/agent/bedrock-prompt-cache.ts` adds cache points to the system + last non-system message. |
+| LangSmith run tracing | `src/observability/langsmith.ts` wraps the AI SDK so reply-generation runs are traceable (project `xatu-agent`). |
+| Code-managed prompts | System prompt, global constraints, and one Markdown file per reply slot live in `prompts/`. |
+| Pokémon agent-naming convention | The agent is named **Xatu** (`agents/xatu.md`, `id: xatu`). |
+| Manifest registration | `agent.manifest.yaml` declares id, capabilities, triggers, inputs, outputs, and required env for Agent Network registration. |
+
+### Deliberate deviations and their rationale
+
+The assignment asks for an agent **aligned with the conventions in the kit**; it does not mandate the Lambda layout, and the kit's own guidance permits a justified alternative runtime. Two deviations are intentional engineering choices, not omissions.
+
+**1. Next.js on Vercel with a scheduled cron — instead of Lambda + CDK + an Asana webhook.**
+
+The kit's reference agent is *event-driven*: an Asana webhook delivers a mention and the agent responds. This agent's trigger is fundamentally different — it is a **scheduled poll** of an X author watchlist, not a reaction to an inbound Asana event. A cron-driven serverless function is therefore the natural fit for the workload:
+
+- The poll runs on a fixed cadence (`vercel.json` cron `0 8 * * *`) against `/api/monitor-x` (`app/api/monitor-x/route.ts`), authorized with a cron bearer secret; a public dry-run path serves the latest saved run snapshot.
+- A hosted Vercel deployment gives a reliable, no-build, publicly exercisable runtime with the cron primitive built in, so there is no separate CDK stack to stand up to demonstrate the agent end to end.
+
+Because there is no Asana *inbound* event in this workload, the webhook half of `@soofi-xyz/chat-adapter-asana` is not exercised; the adapter is still used for the **outbound** Asana task/subtask writes, which is the integration the kit standardizes.
+
+**2. A hand-rolled DynamoDB state store — instead of `@soofi-xyz/chat-state-dynamodb` / AgentCore memory.**
+
+The agent persists polling cursors (per-handle last-seen status id), cross-run dedupe keys (source URI + status id), and run summaries/snapshots in DynamoDB through a small purpose-built store (`src/state/ddb-client.ts`, `src/state/agent-state.ts`), with a local file backend (`src/state/file-store.ts`) for tests and offline runs. This fills the same role the kit splits across `@soofi-xyz/chat-state-dynamodb` and AgentCore memory — durable, externalized state that keeps scheduled runs idempotent and prevents re-creating Asana tasks on every poll.
+
+The store is intentionally narrow because the state this agent needs is operational cursors and dedupe keys, not multi-turn chat history. This is a **justified alternative, not a lock-in**: swapping in `@soofi-xyz/chat-state-dynamodb` (and/or moving the whole agent to the kit's Lambda + CDK layout) is a documented, low-friction path if the Agent Network later requires the canonical runtime — the state interface (`StateBackend` in `src/state/agent-state.ts`) is already abstracted behind cursor/dedupe/run-summary operations.
+
+### Polling behavior (as implemented)
+
+For accuracy, the polling pipeline works as follows:
+
+- A scheduled cron invokes the monitor route on a configurable cadence (`config/settings.yaml` `pollIntervalMinutes`; the deployed Vercel cron fires the real run).
+- The watchlist is **multi-author** (`config/watchlist.yaml`); each run processes a batch sized by `defaultBatchSize`, and the watchlist is **rotated by per-handle cursor** so authors are covered across successive runs rather than all at once.
+- For each author the poller fetches recent posts newer than that handle's stored cursor (`sinceId`), enriches referenced originals when a watched author replies to or quotes another post, and deduplicates already-processed posts by source URI and status id before any matching, drafting, or Asana writes.
+
 ## Reference
 
 - [investors-mcp (public fork)](https://github.com/prismteam-ai/investors-mcp) — sanitized reference implementation

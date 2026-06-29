@@ -1,0 +1,12 @@
+# pnpm settings (pnpm >= 10 reads these here, not in package.json).
+#
+# Allow native postinstall builds for these trusted deps:
+#   esbuild — optional native binary (vitest 3 bundles its own transform)
+#   sharp   — used by Next.js image optimization
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+
+# Do not re-run a deps status check before `pnpm <script>` (e.g. `pnpm test`).
+# The lockfile is committed; CI installs explicitly.
+verifyDepsBeforeRun: false

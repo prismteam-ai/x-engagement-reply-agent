@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/monitor-x?dryRun=false",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
